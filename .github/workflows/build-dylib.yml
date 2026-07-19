@@ -1,0 +1,43 @@
+name: Build BiliBiliMDDylib
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Theos
+        run: |
+          echo "Installing Theos..."
+          sudo mkdir -p /opt/theos
+          sudo git clone --recursive https://github.com/theos/theos.git /opt/theos
+          echo "THEOS=/opt/theos" >> $GITHUB_ENV
+
+      - name: Build dylib
+        run: |
+          export THEOS=/opt/theos
+          make clean
+          make
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BiliBiliMDDylib-${{ github.sha }}
+          path: .theos/obj/debug/BiliBiliMDDylib.dylib
+          if-no-files-found: error
+
+      - name: Upload release artifact (if tagged)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: BiliBiliMDDylib-release-${{ github.ref_name }}
+          path: .theos/obj/debug/BiliBiliMDDylib.dylib
